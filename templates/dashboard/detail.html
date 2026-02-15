@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}{{ item.title }} - Action Tracker{% endblock %}
+
+{% block content %}
+<div class="detail-header">
+    <a href="{% url 'dashboard:home' %}" class="btn btn-link">&larr; Back to Dashboard</a>
+    <h1>{{ item.title }}</h1>
+</div>
+
+<div class="detail-grid">
+    <div class="detail-main">
+        <div class="card">
+            <h3>Description</h3>
+            <div class="description-body">{{ item.description|linebreaksbr|default:"No description provided." }}</div>
+            <div class="detail-meta">
+                <span>Created: {{ item.created_at|date:"M d, Y H:i" }}</span>
+                <span>Updated: {{ item.updated_at|date:"M d, Y H:i" }}</span>
+                {% if item.completed_at %}<span>Completed: {{ item.completed_at|date:"M d, Y H:i" }}</span>{% endif %}
+                <span>Week {{ item.week_number }}, {{ item.year }}</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Responses ({{ responses|length }})</h3>
+            {% for response in responses %}
+            <div class="response">
+                <div class="response-header">
+                    <strong>{{ response.author.name|default:"Unknown" }}</strong>
+                    <span class="response-date">{{ response.created_at|date:"M d, Y H:i" }}</span>
+                </div>
+                <div class="response-body">{{ response.body|linebreaksbr }}</div>
+            </div>
+            {% empty %}
+            <p class="empty-state">No responses yet.</p>
+            {% endfor %}
+
+            <form method="post" action="{% url 'dashboard:respond' item.pk %}" class="response-form">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="body">Add a response</label>
+                    <textarea name="body" id="body" rows="3" placeholder="Type your response..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Post Response</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="detail-sidebar">
+        <div class="card">
+            <h3>Properties</h3>
+            <form method="post" action="{% url 'dashboard:update' item.pk %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Status</label>
+                    <select name="status">
+                        <option value="open" {% if item.status == "open" %}selected{% endif %}>Open</option>
+                        <option value="in_progress" {% if item.status == "in_progress" %}selected{% endif %}>In Progress</option>
+                        <option value="blocked" {% if item.status == "blocked" %}selected{% endif %}>Blocked</option>
+                        <option value="completed" {% if item.status == "completed" %}selected{% endif %}>Completed</option>
+                        <option value="cancelled" {% if item.status == "cancelled" %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Priority</label>
+                    <select name="priority">
+                        <option value="low" {% if item.priority == "low" %}selected{% endif %}>Low</option>
+                        <option value="medium" {% if item.priority == "medium" %}selected{% endif %}>Medium</option>
+                        <option value="high" {% if item.priority == "high" %}selected{% endif %}>High</option>
+                        <option value="urgent" {% if item.priority == "urgent" %}selected{% endif %}>Urgent</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Owner</label>
+                    <select name="owner">
+                        <option value="none">Unassigned</option>
+                        {% for member in team_members %}
+                        <option value="{{ member.id }}" {% if item.owner_id == member.id %}selected{% endif %}>{{ member.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Due Date</label>
+                    <input type="date" name="due_date" value="{{ item.due_date|date:'Y-m-d' }}">
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Update</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

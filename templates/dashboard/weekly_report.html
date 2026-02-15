@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Week {{ week }} Report - Action Tracker{% endblock %}
+
+{% block content %}
+<div class="detail-header">
+    <a href="{% url 'dashboard:home' %}?week={{ week }}&year={{ year }}" class="btn btn-link">&larr; Back to Dashboard</a>
+    <h1>Weekly Report &mdash; Week {{ week }}, {{ year }}</h1>
+</div>
+
+<div class="stats-row">
+    <div class="stat-card">
+        <div class="stat-number">{{ total }}</div>
+        <div class="stat-label">Total Items</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ completed }}</div>
+        <div class="stat-label">Completed</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ total|add:completed|default:0 }}</div>
+        <div class="stat-label">Remaining</div>
+    </div>
+</div>
+
+<div class="report-section">
+    <h2>By Category</h2>
+    {% for cat_name, cat_items in by_category.items %}
+    <div class="card">
+        <h3>{{ cat_name }} ({{ cat_items|length }})</h3>
+        <ul class="report-list">
+            {% for item in cat_items %}
+            <li class="status-{{ item.status }}">
+                <a href="{% url 'dashboard:detail' item.pk %}">{{ item.title }}</a>
+                <span class="badge badge-{{ item.status }}">{{ item.get_status_display }}</span>
+                <span class="report-owner">{{ item.owner.name|default:"Unassigned" }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="report-section">
+    <h2>By Owner</h2>
+    {% for owner_name, owner_items in by_owner.items %}
+    <div class="card">
+        <h3>{{ owner_name }} ({{ owner_items|length }})</h3>
+        <ul class="report-list">
+            {% for item in owner_items %}
+            <li class="status-{{ item.status }}">
+                <a href="{% url 'dashboard:detail' item.pk %}">{{ item.title }}</a>
+                <span class="badge badge-{{ item.status }}">{{ item.get_status_display }}</span>
+                {% if item.category %}<span class="category-tag" style="border-left: 3px solid {{ item.category.color }}">{{ item.category.name }}</span>{% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

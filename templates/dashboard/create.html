@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}New Action Item - Action Tracker{% endblock %}
+
+{% block content %}
+<div class="detail-header">
+    <a href="{% url 'dashboard:home' %}" class="btn btn-link">&larr; Back to Dashboard</a>
+    <h1>Create Action Item</h1>
+</div>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="title">Title *</label>
+            <input type="text" name="title" id="title" required placeholder="What needs to be done?">
+        </div>
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea name="description" id="description" rows="4" placeholder="Additional details..."></textarea>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="priority">Priority</label>
+                <select name="priority" id="priority">
+                    {% for value, label in priorities %}
+                    <option value="{{ value }}" {% if value == "medium" %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="owner">Owner</label>
+                <select name="owner" id="owner">
+                    <option value="">Unassigned</option>
+                    {% for member in team_members %}
+                    <option value="{{ member.id }}">{{ member.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="category">Category</label>
+                <select name="category" id="category">
+                    <option value="">None</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="due_date">Due Date</label>
+                <input type="date" name="due_date" id="due_date">
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Action Item</button>
+    </form>
+</div>
+{% endblock %}

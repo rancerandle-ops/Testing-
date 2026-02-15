@@ -4,78 +4,142 @@ This file provides guidance to AI assistants (including Claude) when working wit
 
 ## Repository Overview
 
-**Repository:** Testing-
-**Status:** New repository in initial setup phase.
+**Project:** Action Tracker — A weekly team action item tracking system with email ingestion.
+**Framework:** Django 5.2 with SQLite
+**Python:** 3.11+
+
+The system captures action items for teams, categorizes them, assigns owners, and supports email-based ingestion via SendGrid/Mailgun inbound parse webhooks. It includes a web dashboard and automated weekly digest emails.
 
 ## Project Structure
 
 ```
 /
-├── CLAUDE.md          # AI assistant guidance (this file)
-└── (additional files to be added)
+├── CLAUDE.md                  # AI assistant guidance (this file)
+├── manage.py                  # Django management entry point
+├── requirements.txt           # Python dependencies
+├── db.sqlite3                 # SQLite database (gitignored)
+├── tracker/                   # Django project settings
+│   ├── settings.py            # Configuration (env-var driven)
+│   ├── urls.py                # Root URL routing
+│   ├── wsgi.py
+│   └── asgi.py
+├── actions/                   # Core app: models, email parsing, webhook
+│   ├── models.py              # Category, TeamMember, ActionItem, ActionResponse, InboundEmail
+│   ├── email_parser.py        # Parses inbound emails into action items
+│   ├── views.py               # Webhook endpoint for inbound email
+│   ├── urls.py                # /api/email/inbound/
+│   ├── admin.py               # Django admin configuration
+│   └── management/commands/
+│       ├── send_weekly_digest.py   # Email digest command
+│       └── seed_demo_data.py       # Demo data seeder
+├── dashboard/                 # Web UI app
+│   ├── views.py               # Dashboard, detail, create, update, weekly report views
+│   └── urls.py                # / (home), /action/<id>/, /report/<year>/week/<week>/
+├── templates/
+│   ├── base.html              # Base layout with navbar
+│   ├── registration/login.html
+│   ├── dashboard/             # Dashboard page templates
+│   │   ├── home.html
+│   │   ├── detail.html
+│   │   ├── create.html
+│   │   └── weekly_report.html
+│   └── email/                 # Email digest templates
+│       ├── weekly_digest.html
+│       └── weekly_digest.txt
+└── static/css/style.css       # All CSS styles
 ```
 
 ## Development Setup
 
-This repository does not yet have a build system, package manager, or dependency configuration. When these are added, update this section with:
-
-- Prerequisites and system requirements
-- Installation steps (e.g., `npm install`, `pip install -r requirements.txt`)
-- Environment variable configuration
+```bash
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py seed_demo_data    # Creates admin user (admin/admin), sample categories, members, items
+python manage.py runserver
+```
 
 ## Build & Run Commands
 
-No build or run commands are configured yet. Update this section as tooling is added.
+- **Install dependencies:** `pip install -r requirements.txt`
+- **Run migrations:** `python manage.py migrate`
+- **Create migrations:** `python manage.py makemigrations actions`
+- **Run dev server:** `python manage.py runserver`
+- **Seed demo data:** `python manage.py seed_demo_data`
+- **Send weekly digest:** `python manage.py send_weekly_digest`
+- **Dry-run digest:** `python manage.py send_weekly_digest --dry-run`
+- **Django system check:** `python manage.py check`
+- **Create superuser:** `python manage.py createsuperuser`
 
-<!-- Example entries to uncomment/replace when applicable:
-- **Install dependencies:** `npm install`
-- **Build:** `npm run build`
-- **Run dev server:** `npm run dev`
-- **Run all tests:** `npm test`
-- **Run single test:** `npm test -- --grep "test name"`
-- **Lint:** `npm run lint`
-- **Format:** `npm run format`
--->
+## Key URLs
 
-## Testing
+| URL | Description |
+|-----|-------------|
+| `/` | Dashboard home (requires login) |
+| `/action/<id>/` | Action item detail view |
+| `/action/create/` | Create new action item |
+| `/action/<id>/update/` | Update action item (POST) |
+| `/action/<id>/respond/` | Add response (POST) |
+| `/report/<year>/week/<week>/` | Weekly report view |
+| `/api/email/inbound/` | Inbound email webhook (POST, csrf-exempt) |
+| `/admin/` | Django admin panel |
+| `/login/` | Login page |
 
-No testing framework is configured yet. When tests are added, document:
+## Data Models
 
-- Testing framework and runner
-- How to run the full test suite
-- How to run a single test file or test case
-- Test file naming conventions and location
+- **Category** — name, color (hex), description
+- **TeamMember** — name, email, is_active
+- **ActionItem** — title, description, status, priority, category (FK), owner (FK), due_date, week_number, year
+- **ActionResponse** — linked to ActionItem, author (FK to TeamMember), body
+- **InboundEmail** — raw log of all received emails, tracks processing status
+
+### Action Item Statuses
+`open`, `in_progress`, `blocked`, `completed`, `cancelled`
+
+### Priority Levels
+`low`, `medium`, `high`, `urgent`
+
+## Email Ingestion
+
+The system parses inbound emails at `/api/email/inbound/` (webhook endpoint). It supports both SendGrid and Mailgun inbound parse formats.
+
+**How parsing works:**
+- Lines starting with `- `, `* `, or numbered (`1. `) are extracted as individual action items
+- `@name` assigns an owner by matching against TeamMember name/email
+- `[Category]` or `#category` assigns a category
+- Keywords like `urgent`, `asap`, `high priority` set priority
+- Replies (via In-Reply-To header) are added as ActionResponse to existing items
+- If no structured items are found, the email subject becomes a single action item
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DJANGO_SECRET_KEY` | insecure dev key | Production secret key |
+| `DJANGO_DEBUG` | `True` | Debug mode |
+| `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated hosts |
+| `EMAIL_BACKEND` | console backend | `django.core.mail.backends.smtp.EmailBackend` for production |
+| `EMAIL_HOST` | `smtp.sendgrid.net` | SMTP host |
+| `SENDGRID_API_KEY` | (empty) | SendGrid API key |
+| `DEFAULT_FROM_EMAIL` | `tracker@example.com` | Sender address |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | (empty) | Shared secret for webhook verification |
 
 ## Code Style & Conventions
 
-When code is added to this repository, document the following conventions here:
-
-- **Language(s):** (to be determined)
-- **Formatting:** (e.g., Prettier, Black, gofmt)
-- **Linting:** (e.g., ESLint, Pylint, Clippy)
-- **Naming conventions:** (e.g., camelCase for JS, snake_case for Python)
-- **File organization:** (describe directory structure patterns)
-
-## Git Workflow
-
-- **Default branch:** To be established with the first commit
-- **Branch naming:** Use descriptive branch names (e.g., `feature/add-auth`, `fix/login-bug`)
-- **Commit messages:** Write clear, concise commit messages describing *why* the change was made
-
-## Key Patterns & Architecture
-
-Document architectural decisions and patterns here as the project develops, including:
-
-- Design patterns in use
-- Module/package boundaries
-- API conventions
-- Error handling approach
-- Configuration management
+- **Language:** Python 3.11+
+- **Framework:** Django 5.2 with function-based views
+- **Naming:** snake_case for Python, BEM-like classes in CSS
+- **Models:** defined in `actions/models.py`, all models use `ordering` in Meta
+- **Views:** function-based with `@login_required` decorator for dashboard views
+- **Templates:** Django template language, extending `base.html`
+- **Admin:** all models registered with custom admin classes in `actions/admin.py`
 
 ## Important Notes for AI Assistants
 
 - Read existing code before proposing modifications
 - Keep changes minimal and focused on the task at hand
-- Do not add unnecessary abstractions or over-engineer solutions
-- Run linting and tests (once configured) before committing
-- Follow existing code conventions and patterns established in the codebase
+- Run `python manage.py check` after model changes
+- Run `python manage.py makemigrations` after changing models
+- The `actions` app handles data models and email processing; the `dashboard` app handles the web UI
+- All dashboard views require authentication (`@login_required`)
+- The webhook endpoint is csrf-exempt (for external email services) but supports signature verification
+- Email backend defaults to console (prints to stdout) in development

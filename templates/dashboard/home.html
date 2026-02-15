@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Action Tracker{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1>Week {{ filter_week }}, {{ filter_year }}</h1>
+    <a href="{% url 'dashboard:create' %}" class="btn btn-primary">+ New Action Item</a>
+</div>
+
+<div class="stats-row">
+    <div class="stat-card">
+        <div class="stat-number">{{ total }}</div>
+        <div class="stat-label">Total Items</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ open_count }}</div>
+        <div class="stat-label">Open</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ completed_count }}</div>
+        <div class="stat-label">Completed</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{% if total %}{{ completed_count|floatformat:0 }}%{% else %}0%{% endif %}</div>
+        <div class="stat-label">Done</div>
+    </div>
+</div>
+
+<div class="filters">
+    <form method="get" class="filter-form">
+        <div class="filter-group">
+            <label>Week</label>
+            <input type="number" name="week" value="{{ filter_week }}" min="1" max="53" class="input-sm">
+        </div>
+        <div class="filter-group">
+            <label>Year</label>
+            <input type="number" name="year" value="{{ filter_year }}" min="2020" class="input-sm">
+        </div>
+        <div class="filter-group">
+            <label>Status</label>
+            <select name="status">
+                <option value="">All</option>
+                {% for value, label in statuses %}
+                <option value="{{ value }}" {% if filter_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Owner</label>
+            <select name="owner">
+                <option value="">All</option>
+                {% for member in team_members %}
+                <option value="{{ member.id }}" {% if filter_owner == member.id|stringformat:"d" %}selected{% endif %}>{{ member.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Category</label>
+            <select name="category">
+                <option value="">All</option>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}" {% if filter_category == cat.id|stringformat:"d" %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Priority</label>
+            <select name="priority">
+                <option value="">All</option>
+                {% for value, label in priorities %}
+                <option value="{{ value }}" {% if filter_priority == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-secondary">Filter</button>
+        <a href="{% url 'dashboard:home' %}" class="btn btn-link">Reset</a>
+    </form>
+</div>
+
+<div class="weekly-report-link">
+    <a href="{% url 'dashboard:weekly_report' filter_year filter_week %}" class="btn btn-secondary">View Full Weekly Report</a>
+</div>
+
+<table class="items-table">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Category</th>
+            <th>Owner</th>
+            <th>Due Date</th>
+            <th>Created</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in items %}
+        <tr class="status-{{ item.status }}">
+            <td><a href="{% url 'dashboard:detail' item.pk %}">{{ item.title }}</a></td>
+            <td><span class="badge badge-{{ item.status }}">{{ item.get_status_display }}</span></td>
+            <td><span class="badge badge-{{ item.priority }}">{{ item.get_priority_display }}</span></td>
+            <td>{% if item.category %}<span class="category-tag" style="border-left: 3px solid {{ item.category.color }}">{{ item.category.name }}</span>{% else %}&mdash;{% endif %}</td>
+            <td>{{ item.owner.name|default:"Unassigned" }}</td>
+            <td>{{ item.due_date|default:"&mdash;" }}</td>
+            <td>{{ item.created_at|date:"M d, H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="7" class="empty-state">No action items found for this week. Send an email or create one manually.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

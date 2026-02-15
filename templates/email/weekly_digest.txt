@@ -1,0 +1,12 @@
+WEEKLY ACTION ITEM DIGEST - Week {{ week }}, {{ year }}
+========================================================
+
+Summary: {{ total }} total | {{ open_count }} open | {{ completed_count }} completed
+
+{% for owner_name, owner_items in by_owner.items %}
+{{ owner_name }}
+{% for item in owner_items %}- [{{ item.get_status_display }}] {{ item.title }}{% if item.category %} ({{ item.category.name }}){% endif %}
+{% endfor %}
+{% endfor %}
+--
+Action Tracker - Reply to this email to add a response to your items.
